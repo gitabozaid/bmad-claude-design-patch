@@ -1,0 +1,27 @@
+# Initial roadmap-progress.yaml template (fresh project)
+# The orchestrator creates this file on first activation of /bmad-roadmap-v2.
+
+project_name: "{project-name}"
+current_phase: 1
+started: "{today}"
+updated: "{today}"
+
+phases:
+  1-discover:
+    status: in-progress
+  2-ux-design:
+    status: pending
+  3-epics-stories:
+    status: pending
+  4-claude-design-loop:
+    status: pending
+  5-sprint-planning:
+    status: pending
+  6-build:
+    status: pending
+  7-deploy:
+    status: pending
+  8-harden:
+    status: pending
+  9-evolve:
+    status: pending

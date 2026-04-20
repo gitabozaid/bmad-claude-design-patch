@@ -1,0 +1,18 @@
+# design-progress.yaml
+# Tracks the Phase 4 per-epic Claude Design loop.
+# Created by /bmad-claude-design-prep on first epic; updated by /bmad-sync-from-design.
+# Read by /bmad-roadmap-v2 to determine which epic is next.
+
+epics: {}
+  # Entry per epic looks like:
+  #
+  # <epic-slug>:
+  #   name: "<Epic Name>"
+  #   claude_design_project_url: ""
+  #   bundle_url: ""
+  #   status: pending          # pending | in-progress | design-complete | built
+  #   started: null            # ISO date when prep ran
+  #   last_handoff: null       # ISO date when sync ran
+  #   stories_synced: false
+  #   changes_applied: 0
+  #   notes: null              # optional — free-form

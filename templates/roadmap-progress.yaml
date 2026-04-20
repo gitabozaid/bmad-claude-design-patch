@@ -1,0 +1,40 @@
+# roadmap-progress.yaml
+# Tracks progress across all 9 phases of the bmad-claude-design-patch roadmap.
+# Created by /bmad-roadmap-v2 on first activation.
+# Read/updated every time the roadmap advances.
+
+project_name: "{{project-name}}"
+current_phase: 1
+started: "{{today}}"
+updated: "{{today}}"
+
+phases:
+  1-discover:
+    status: in-progress
+  2-ux-design:
+    status: pending
+  3-epics-stories:
+    status: pending
+  4-claude-design-loop:
+    status: pending       # becomes complete when every epic in design-progress.yaml is design-complete
+  5-sprint-planning:
+    status: pending
+  6-build:
+    status: pending
+    # Mature state adds:
+    # test_infra_done: false
+    # current_epic: 1
+    # epics:
+    #   1:
+    #     name: "..."
+    #     status: pending
+    #     stories_total: 4
+    #     stories_completed: 0
+    #     current_story: null
+    #     retro_done: false
+  7-deploy:
+    status: pending
+  8-harden:
+    status: pending
+  9-evolve:
+    status: pending
