@@ -87,8 +87,12 @@ Do exactly these steps:
    - If `package.json` at root (no frontend/ folder) → single-stack Node project
    - Use the detected stack for all build and verify commands below.
 
-4. Implement the story as a full-stack slice:
-   a. UI — build the screen to match the design extracted from the bundle. Use the project's existing component library (from design system). Match the framework (Next.js page + components, Vue SFC, etc.).
+4. Check the app shell status (read `design-progress.yaml: app_shell.status`):
+   - If `implemented`: the app shell lives at `{app_shell.layout_component_path}`. Import AppLayout (or the project's shell equivalent) and wrap your new screen inside it. DO NOT modify AppLayout, Header, Footer, or Navigation. Build ONLY the content that goes inside the main area of the shell.
+   - If `none`: the product has no persistent shell. Build the screen directly — no wrapper required.
+
+5. Implement the story as a full-stack slice:
+   a. UI — build the screen to match the design extracted from the bundle. Use the project's existing component library (from design system). Match the framework (Next.js page + components, Vue SFC, etc.). If app shell is implemented, wrap the content as noted above.
    b. State — wire local state, global store (Redux/Zustand/Pinia), or React Query as appropriate.
    c. Routing — add route entries. Match the project's routing convention.
    d. i18n — add translation keys for all user-facing strings. Support AR + EN if the project is bilingual.
@@ -96,7 +100,7 @@ Do exactly these steps:
    f. DB — add migrations if the story needs new tables/columns. Seed data if applicable.
    g. Tests — unit tests for the UI component and API controller, one happy-path E2E for the screen.
 
-5. Verify (stack-specific):
+6. Verify (stack-specific):
    - Node frontend: `cd frontend && pnpm tsc --noEmit && pnpm lint` (or at root if single-stack)
    - Laravel backend: `cd backend && php artisan test`
    - Single-stack projects: adapt commands to the detected stack.
@@ -131,9 +135,12 @@ Review the screen in your browser. Say "continue" when done, or tell me fixes.
 
 Wait for user response:
 - `"continue"` → Mark done, go to Step 4.
-- Fixes → Classify each:
-  - Code-level (typo, color tweak, copy) → Re-invoke Saneh with fixes, re-enter Step 3.
-  - Design-level (structural change) → See "Escape to Phase 4" below.
+- Fixes → Classify each (three-way):
+  - **CONTENT-level** (typo, color tweak, copy inside the main area, component inside content) → Re-invoke Saneh with fixes, re-enter Step 3.
+  - **JOURNEY-DESIGN-level** (layout of content area, new screen, rearranged sections) → See "Escape to Phase 4" below (epic's journey project).
+  - **SHELL-level** (header, footer, sidebar, navigation, global nav/chrome) → See "Escape to App Shell" below. The journey project can't fix this — the shell lives in "00 — App Shell" and in AppLayout code.
+
+If the classification is ambiguous, ask the user: "Is this change about the content area (CONTENT), the journey screen structure (JOURNEY), or the app shell (SHELL)?"
 
 ### Step 4 — Naqed — Visual QA (Compliance → Critique → Audit)
 
@@ -145,18 +152,22 @@ You are Naqed, visual QA agent. Context: Story {X.Y}, Screen URL: {url}, Bundle 
 Execute these 3 sub-steps IN ORDER:
 
 Sub-step 4a — Design Compliance Check:
-1. Take a screenshot of the implemented screen at {screen URL} using Playwright MCP.
-2. Open the Bundle URL and take a screenshot of the corresponding screen (or use the static export if available).
-3. Compare side-by-side. Report discrepancies at these levels:
+1. Read `_bmad-output/implementation-artifacts/design-progress.yaml` and note `app_shell.status`.
+2. Take a screenshot of the implemented screen at {screen URL} using Playwright MCP.
+3. Open the Bundle URL and take a screenshot of the corresponding screen (or use the static export if available).
+4. Compare side-by-side. Report discrepancies at these levels:
    - Layout: column structure, spacing, alignment
    - Components: present/missing/substituted
    - Colors & typography: drift from design tokens
    - Interactions visible on screen (hover, disabled state)
    - Copy / content
-4. For each discrepancy, classify as either:
+5. **Scope of comparison:**
+   - If `app_shell.status == "implemented"`: compare the MAIN CONTENT AREA ONLY. The shell (header, footer, sidebar, navigation) lives in AppLayout and is fixed across all stories — do NOT flag shell differences between the implementation and the bundle as violations. Only flag discrepancies inside the content area.
+   - If `app_shell.status == "none"`: compare the full screen including any chrome.
+6. For each discrepancy, classify as either:
    - IMPLEMENTATION BUG — fix in code
    - INTENTIONAL DEVIATION — note with reason
-5. Apply IMPLEMENTATION BUG fixes directly.
+7. Apply IMPLEMENTATION BUG fixes directly.
 
 Sub-step 4b — Critique (UX):
 1. Invoke `/critique` via Skill tool on the screen URL.
@@ -208,9 +219,12 @@ Reply with:
   - Any list of fixes (free-form, e.g., "header color, button position") → I'll classify each
 ```
 
-Classify user fixes (if any):
-- **Design-level** (structural, layout, feature change): Escape to Phase 4 — see "Escape to Phase 4" below.
-- **Code-level** (styling, copy, minor behavior): Re-invoke Saneh with fixes, then return to Step 5.
+Classify user fixes (if any) — three-way classification:
+- **CONTENT-level** (CSS tweak, copy, component inside main area, minor behavior): Re-invoke Saneh with fixes, then return to Step 5.
+- **JOURNEY-DESIGN-level** (layout of content area, new screen, rearranged sections, feature scope): Escape to Phase 4 for this epic — see "Escape to Phase 4 (journey)" below.
+- **SHELL-level** (header, footer, sidebar, navigation, global nav/chrome): Escape to App Shell — see "Escape to App Shell" below.
+
+If classification is ambiguous, ask the user: "Is this change about the content area (CONTENT), the journey screen structure (JOURNEY), or the app shell (SHELL)?"
 
 If approve → mark done, go to Step 6 in the same turn.
 
@@ -275,15 +289,38 @@ When it returns:
 
 ---
 
-## Escape to Phase 4 (revise design)
+## Escape to Phase 4 (journey) — revise journey design
 
-Triggered from Step 3 or Step 5 if user requests design-level changes.
+Triggered from Step 3 or Step 5 if the user requests a **JOURNEY-DESIGN-level** change (layout of content area, new screen, rearranged sections within this epic).
 
-1. Print: "This change affects the design. Returning to Phase 4 for Epic {epic}."
+1. Print: "This change affects the journey design. Returning to Phase 4 for Epic {epic}."
 2. Open `_bmad-output/implementation-artifacts/design-progress.yaml`.
 3. Set this epic's `status` back to `in-progress`.
-4. Record: `notes: "Phase 6 Story {X.Y} surfaced design issue: {description}"`.
+4. Record: `notes: "Phase 6 Story {X.Y} surfaced journey-level design issue: {description}"`.
 5. Abandon or soft-keep the story branch (ask user).
-6. Instruct user to open the Claude Design project (URL in `design-progress.yaml`) and iterate.
-7. When user is done, run `/bmad-sync-from-design --epic={slug}` to re-sync.
+6. Instruct the user to open the Claude Design **journey** project (URL in `design-progress.yaml.epics.{slug}`) and iterate.
+7. When the user is done, run `/bmad-sync-from-design --epic={slug}` to re-sync.
 8. Return to Phase 6 at the affected story (re-run from Step 1 with refreshed Design Reference).
+
+## Escape to App Shell — revise shell design
+
+Triggered from Step 3 or Step 5 if the user requests a **SHELL-level** change (header, footer, sidebar, navigation, global chrome). The journey project can't fix this — the shell lives in "00 — App Shell" and in AppLayout code.
+
+1. Print: "This change affects the app shell. All stories using AppLayout are affected."
+2. Open `design-progress.yaml`.
+3. Set `app_shell.status` back to `pending` (or `design-complete` if only the code needs updating, not the design).
+4. Record: `app_shell.notes: "Phase 6 Story {X.Y} surfaced shell issue: {description}"`.
+5. Abandon or soft-keep the story branch (ask user).
+6. Instruct the user:
+   ```
+   Open the Claude Design project "00 — App Shell" (URL in design-progress.yaml.app_shell.claude_design_project_url)
+   and iterate on the shell. When done:
+   1. Export → Hand off to Claude Code
+   2. Paste the handoff into local Claude Code on branch chore/app-shell
+   3. Re-implement AppLayout.tsx (or stack-equivalent at {{layout_component_path}})
+   4. Review + merge to main
+   5. Come back and tell me the shell is ready
+   ```
+7. When the user returns, update `app_shell.status = implemented` and `app_shell.implemented_at = {today}`.
+8. **Impact:** any story already shipped that uses AppLayout now visually inherits the new shell automatically (no rebuild needed for shell-only changes because AppLayout is a shared component). Only stories with content-area changes need re-run.
+9. Return to Phase 6 at the affected story (re-run from Step 1).

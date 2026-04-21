@@ -1,7 +1,21 @@
 # design-progress.yaml
-# Tracks the Phase 4 per-epic Claude Design loop.
-# Created by /bmad-claude-design-prep on first epic; updated by /bmad-sync-from-design.
-# Read by /bmad-roadmap-v2 to determine which epic is next.
+# Tracks the Phase 4 per-epic Claude Design loop AND the app shell state.
+# Created by /bmad-roadmap-v2 when reaching Phase 4 pre-flight; updated by
+# /bmad-claude-design-prep and /bmad-sync-from-design.
+
+app_shell:
+  status: pending               # pending | design-complete | implemented | none
+  claude_design_project_url: ""
+  bundle_url: ""
+  implemented_at: null          # ISO date when AppLayout.tsx (or equivalent) was committed
+  layout_component_path: ""     # e.g., "frontend/src/components/layout/AppLayout.tsx"
+  notes: null                   # optional — free-form
+  # Values:
+  # - pending         → Phase 4 pre-flight not answered yet. Orchestrator asks [yes/no/skip].
+  # - design-complete → Shell designed in Claude Design but not yet implemented in code.
+  # - implemented     → Shell exists in code at layout_component_path. Phase 4 per-epic loop can start.
+  # - none            → Product has no persistent shell (single-screen landing / minimal PWA).
+  #                     All shell-specific instructions are skipped per epic.
 
 epics: {}
   # Entry per epic looks like:

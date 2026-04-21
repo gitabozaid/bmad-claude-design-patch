@@ -13,6 +13,21 @@ This is the template the skill fills in and prints to the terminal for the user 
 - `{{role_context}}` — Public / Authenticated / Admin-only / Mixed
 - `{{screens_list}}` — generated from story files
 - `{{design_system_note}}` — if design system is attached at org-level, mention it; else note it's in the upload
+- `{{app_shell_constraint}}` — conditional block, populated based on `design-progress.yaml: app_shell.status`:
+  - if status is `implemented` → print the "App shell constraint" block (see below)
+  - if status is `none` → leave empty string (no shell constraint applies)
+  - if status is `pending` → this is a bug; Phase 4 should not start without app_shell resolved. Halt.
+
+### App shell constraint block (inserted when `app_shell.status == implemented`)
+
+```
+App shell constraint:
+The app shell (AppLayout, Header, Footer, Navigation) already exists in the
+attached codebase at {{layout_component_path}}. DO NOT redesign it. All screens
+must use the existing AppLayout as-is. Focus design effort on the MAIN CONTENT
+AREA of each screen only. The header, footer, sidebar, and navigation are
+fixed and must NOT be reimagined.
+```
 
 ## Template
 
@@ -32,6 +47,8 @@ Role/visibility: {{role_context}}
 
 Design system:
 {{design_system_note}}
+
+{{app_shell_constraint}}
 
 Requirements for every screen:
 - Use the existing component library from the design system — match its spacing, typography, color tokens exactly

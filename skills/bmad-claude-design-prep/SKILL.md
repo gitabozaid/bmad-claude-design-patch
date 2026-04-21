@@ -28,6 +28,13 @@ Phase 4 of the roadmap is a per-epic loop: design every screen of an epic in Cla
 - Read each story file in `stories/` that belongs to this epic (prefix match or explicit reference in epic file)
 - Read relevant section of `ux-design-specification.md` (journey section matching the epic)
 - Read relevant section(s) of `prd.md` (FR references mentioned in the stories)
+- Read `_bmad-output/implementation-artifacts/design-progress.yaml` and note `app_shell.status` + `app_shell.layout_component_path` — this controls how the checklist and prompt are rendered
+
+### 1b. App shell status gate
+
+- If `app_shell.status == "pending"` → HALT with error: "Phase 4 pre-flight was not completed. Run `/bmad-roadmap-v2` and answer the App Shell pre-flight question first." Do not generate checklist or prompt.
+- If `app_shell.status == "implemented"` → render the REQUIRED codebase attachment line in the checklist AND include the "App shell constraint" block in the prompt. Substitute `{{layout_component_path}}` with the recorded path.
+- If `app_shell.status == "none"` → render the OPTIONAL codebase attachment line in the checklist (softer wording) AND leave the "App shell constraint" block empty in the prompt. No shell instructions propagate.
 
 ### 2. Build the attachment checklist
 

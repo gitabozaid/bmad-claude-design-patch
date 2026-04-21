@@ -8,7 +8,11 @@
 
 ## One-Time Setup (before the loop starts)
 
-**Organization-level design system setup** — done once per project, not per epic:
+Two one-time setup steps:
+
+### Setup 1 — Organization-level design system
+
+Done once per project, not per epic:
 
 1. Open [claude.ai/design](https://claude.ai/design) and create an organization for this project (or use an existing one)
 2. Upload the project's design system:
@@ -18,6 +22,61 @@
 4. Toggle the design system "Published" so every project under this organization inherits it
 
 **Do this step ONLY once per project.** Subsequent epics reuse the same organization-level design system.
+
+### Setup 2 — App Shell Pre-flight
+
+Claude Design does NOT have Figma-style layout inheritance across projects. To guarantee shell consistency across per-epic projects, the app shell (header, footer, sidebar, navigation — the chrome that appears on most screens) must live in the CODEBASE before Phase 4 starts.
+
+**Pre-flight prompt (the orchestrator asks the user):**
+
+```
+Before Phase 4 can start, we need to know the status of the app shell.
+
+Has your project got an AppLayout (or stack-equivalent) component implemented?
+
+  [yes]   → Tell me the path (e.g., frontend/src/components/layout/AppLayout.tsx).
+            I'll record it in design-progress.yaml and proceed to the per-epic loop.
+  [no]    → I'll guide you through the shell workflow (design in Claude Design
+            "00 — App Shell", export, implement, commit). Then come back and
+            answer [yes].
+  [skip]  → The product has no persistent shell (single-screen landing,
+            minimal PWA, interstitial, etc.). Skip shell-related instructions
+            for every epic. Codebase attachment becomes OPTIONAL instead of
+            REQUIRED.
+```
+
+**On `[yes]`:**
+- Record `app_shell.status: implemented`, `app_shell.layout_component_path: <user-provided path>`, `app_shell.implemented_at: {today}` in `design-progress.yaml`
+- Proceed to "The Loop" section below
+
+**On `[no]`:**
+- Print the shell-first workflow:
+  ```
+  1. Go to claude.ai/design
+  2. Create a new project named "00 — App Shell"
+  3. Prompt: "Design the app shell for <product type>: header (logo + nav + user avatar),
+     footer (if any), sidebar (if any), navigation. Show all variants: default,
+     scrolled, mobile (hamburger state if applicable), desktop."
+  4. Iterate until satisfied
+  5. Export → Hand off to Claude Code
+  6. Paste the handoff prompt into local Claude Code
+  7. Claude Code builds AppLayout.tsx (or stack-equivalent) on branch chore/app-shell
+  8. Review, merge to main
+  9. Re-run /bmad-roadmap-v2 and answer [yes] to the pre-flight
+  ```
+- Record `app_shell.status: pending` + any URLs the user pasted
+- Halt Phase 4 until the user returns with `[yes]`
+
+**On `[skip]`:**
+- Record `app_shell.status: none` in `design-progress.yaml`
+- The choice is sticky — the orchestrator never re-asks unless the user manually edits `design-progress.yaml`
+- Proceed to "The Loop" — all shell-related instructions are omitted in per-epic prompts
+
+**Shell implementation — NOT a story.** The shell is infrastructure, not a user-facing feature:
+- Branch: `chore/app-shell` (or `feat/app-shell-foundation`)
+- No story file, no Kateb reviews, no Naqed, no retrospective
+- Merge directly to `main` once reviewed
+- It's tracked in `design-progress.yaml: app_shell` only, NOT in `sprint-status.yaml`
 
 ---
 

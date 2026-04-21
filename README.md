@@ -101,9 +101,47 @@ Phase 4 runs a loop per epic. For each epic:
 
 ---
 
+## Before Phase 4 — App Shell in Code (one-time prerequisite)
+
+Claude Design doesn't have a Figma-style shared layout across projects. To guarantee consistency across journey-per-project designs, the app shell (header, footer, sidebar, navigation — the chrome that appears on most screens) lives **in the codebase**, not in each Claude Design project.
+
+The workflow:
+
+1. Go to [claude.ai/design](https://claude.ai/design) and create a project named **"00 — App Shell"**
+2. Design the shell and all variants:
+   - Default state, scrolled state, mobile (hamburger), desktop
+   - Any role-gated differences (admin vs regular user)
+3. Export → **Hand off to Claude Code**
+4. In Claude Code, paste the handoff prompt on a new branch `chore/app-shell`
+5. Claude Code implements `AppLayout.tsx` (or your stack's equivalent):
+   - Next.js App Router → `app/layout.tsx`
+   - Next.js Pages Router → `pages/_app.tsx`
+   - Vue → `layouts/default.vue`
+   - Vanilla React → `src/App.tsx`
+6. Review + merge to `main` — this is a **foundation change**, not a story. No Kateb, no Naqed, no retrospective.
+7. Run `/bmad-roadmap-v2`. At the Phase 4 pre-flight, answer `[yes]` and provide the path to AppLayout. The orchestrator records it in `design-progress.yaml` and proceeds to the per-epic loop.
+
+**The payoff:** every per-epic Claude Design project attaches the codebase (which now contains the shell) so all generated screens respect the same shell automatically. And the story protocol enforces "shell is fixed" on the build side (Saneh) and compare side (Naqed).
+
+### Pre-flight options
+
+When `/bmad-roadmap-v2` reaches Phase 4, it asks:
+
+- **`[yes]`** — the shell is implemented; tell me the path
+- **`[no]`** — guide me through the shell workflow (do the steps above, come back)
+- **`[skip]`** — my product has no persistent shell (single-screen landing, minimal PWA, interstitial). Skip all shell-related instructions. Codebase attachment becomes OPTIONAL instead of REQUIRED.
+
+The `[skip]` choice is sticky — the orchestrator won't re-ask.
+
+### Shell revision mid-project
+
+If during Phase 6 (Build) a story surfaces a shell-level issue ("header should be smaller", "nav items wrong"), the story protocol's "Escape to App Shell" path kicks in: iterate in the "00 — App Shell" Claude Design project, re-implement AppLayout, re-merge to main. Stories already shipped auto-inherit the new shell (it's a shared component).
+
+---
+
 ## Design System setup (one-time, before Phase 4)
 
-Before the first epic of Phase 4:
+Before the first epic of Phase 4 (but after the App Shell workflow above):
 1. Open [claude.ai/design](https://claude.ai/design)
 2. Create an organization for this project
 3. Upload your project's design system (link GitHub repo OR upload component library folder)
