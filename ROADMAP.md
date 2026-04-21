@@ -40,17 +40,37 @@ For legacy projects on WDS + per-screen specs + split UI/Backend stories, use [v
 
 ### One-time setup (before the loop)
 
+Two sequential setup steps:
+
+**Setup 1 — Organization-level design system:**
 Open claude.ai/design → create organization for the project → upload design system (link repo or asset files) → toggle "Published".
+
+**Setup 2 — App Shell Pre-flight (new in v3.1):**
+Claude Design has no Figma-style layout inheritance across projects. To guarantee shell consistency, the app shell (header, footer, sidebar, navigation) lives in the **codebase**, not in each Claude Design project. The orchestrator asks:
+
+- `[yes]` → the shell is implemented; tell me the path (e.g., `frontend/src/components/layout/AppLayout.tsx`)
+- `[no]`  → guide me through the shell workflow:
+  1. Create a Claude Design project "00 — App Shell"
+  2. Design the shell (all variants: default, scrolled, mobile, desktop)
+  3. Export → Hand off to Claude Code
+  4. Implement as `AppLayout.tsx` on branch `chore/app-shell`
+  5. Review + merge to main
+  6. Come back and answer `[yes]`
+- `[skip]` → product has no persistent shell (single-screen landing / minimal PWA). All shell-specific instructions are skipped; codebase attachment becomes OPTIONAL.
+
+The choice is recorded in `design-progress.yaml: app_shell` and is sticky.
+
+**The shell is infrastructure, NOT a story.** Foundation branch, merged directly to main. No Kateb, no Naqed, no retrospective. Tracked in `design-progress.yaml.app_shell` only.
 
 ### Loop per epic
 
 For each epic from Phase 3:
 
-1. `/bmad-claude-design-prep --epic=<slug>` — prints **attachment checklist** (exact file paths to upload) + **ready-to-paste prompt** (includes aesthetics guidance to avoid AI-slop output). Creates `design-process/claude-design-handoffs/<slug>/bundle.md` landing file.
+1. `/bmad-claude-design-prep --epic=<slug>` — prints **attachment checklist** (exact file paths to upload, including REQUIRED codebase attachment when shell is `implemented`) + **ready-to-paste prompt** (with aesthetics guidance + "App shell constraint" section when shell is implemented). Creates `design-process/claude-design-handoffs/<slug>/bundle.md`.
 2. User work in browser:
    - Create a new Claude Design project for the epic
-   - Upload the files from the checklist
-   - Paste the prompt
+   - Upload the files from the checklist (PRD + UX doc + epic + stories + **codebase** if shell is implemented)
+   - Paste the prompt (includes "Don't redesign the shell; focus on main content area only" when applicable)
    - Iterate (inline comments for small changes, chat for structural changes)
    - Ask for edge states (empty, error, loading, RTL if bilingual)
    - Export → **"Hand off to Claude Code"** → get bundle URL + handoff prompt
@@ -84,17 +104,24 @@ Follow `.claude/skills/bmad-roadmap-v2/references/story-protocol.md`. 10 steps i
 ```
 Step 1:  Branch
 Step 2:  Saneh — Full-Stack Build
-         (reads story + Design Reference block; fetches bundle;
-          detects project stack; builds UI + state + routing + i18n +
-          API + DB migration + tests in one coordinated pass)
+         (reads story + Design Reference block; reads app_shell.status;
+          if implemented: imports AppLayout and wraps content, does NOT
+          modify shell; fetches bundle; detects stack; builds UI + state
+          + routing + i18n + API + DB migration + tests in one pass)
 Step 3:  User Review [PAUSE]
+         Fixes classified three-way (CONTENT / JOURNEY / SHELL)
 Step 4:  Naqed — Visual QA (in this order)
          4a. Design Compliance Check (vs Bundle URL)
+             — when shell is implemented, compares MAIN CONTENT AREA only;
+               shell differences are not flagged as violations
          4b. Critique (UX)
          4c. Audit (a11y + performance)
 Step 5:  User Final Approval [PAUSE]
-         (classify fixes: design-level → escape to Phase 4 for this epic,
-          code-level → re-invoke Saneh, approve → continue)
+         Three-way fix classification:
+           CONTENT-level → re-invoke Saneh (content, copy, CSS tweaks)
+           JOURNEY-DESIGN-level → Escape to Phase 4 for this epic (layout, new screen)
+           SHELL-level → Escape to App Shell (header, footer, navigation)
+         Approve → continue to Step 6.
 Step 6:  /simplify
 Step 7:  /bmad-code-review (auto-mode)
 Step 8:  PR Review (3 agents in parallel)
@@ -104,9 +131,23 @@ Step 10: /ship
 
 No Kateb step (reviews moved to Phase 3). No Mir'a step (sync happens in Phase 4, not per story).
 
-### Escape to Phase 4
+### Escape to Phase 4 (journey design)
 
-If Step 5 or Step 3 surfaces a design-level change, return to Phase 4 for the affected epic: reset its `design-progress.yaml` status to `in-progress`, open the Claude Design project, iterate, re-export, re-run `/bmad-sync-from-design`, then resume Phase 6 at the affected story.
+If Step 3 or Step 5 surfaces a **JOURNEY-DESIGN-level** change (layout of content area, new screen, rearranged sections), return to Phase 4 for the affected epic: reset its `design-progress.yaml` status to `in-progress`, open the Claude Design journey project, iterate, re-export, re-run `/bmad-sync-from-design`, then resume Phase 6 at the affected story.
+
+### Escape to App Shell (shell design)
+
+If Step 3 or Step 5 surfaces a **SHELL-level** change (header, footer, sidebar, navigation, global chrome), the journey project can't fix this — the shell lives in "00 — App Shell" and in `AppLayout` code:
+
+1. Set `app_shell.status` back to `pending` (or `design-complete` if only code needs updating).
+2. Open the Claude Design project "00 — App Shell" (URL in `design-progress.yaml.app_shell.claude_design_project_url`).
+3. Iterate in Claude Design → Export → Hand off to Claude Code.
+4. Re-implement `AppLayout.tsx` on branch `chore/app-shell`.
+5. Review + merge to main.
+6. Update `app_shell.status = implemented`.
+7. Resume Phase 6 at the affected story.
+
+**Impact:** any story already shipped that uses AppLayout automatically inherits the updated shell (shared component). Only stories with content-area regressions need rebuild.
 
 ## 7. Deploy (Full-Stack)
 
