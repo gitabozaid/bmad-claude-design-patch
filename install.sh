@@ -105,15 +105,17 @@ install_file() {
 install_directory() {
     local src_dir="$1"
     local dst_dir="$2"
-    mkdir -p "$dst_dir"
     # Remove dst symlink if present (migration from symlink → copy mode)
     if [ -L "$dst_dir" ]; then
         rm "$dst_dir"
-        mkdir -p "$dst_dir"
     fi
-    (cd "$src_dir" && find . -type f ! -path '*/.DS_Store') | while read -r rel_path; do
+    mkdir -p "$dst_dir"
+    # Use process substitution (not a pipe) so install_file runs in the
+    # current shell — otherwise BACKUPS_MADE / BACKUP_TIMESTAMP updates
+    # made inside the loop would be discarded at the subshell boundary.
+    while read -r rel_path; do
         install_file "$src_dir/$rel_path" "$dst_dir/$rel_path"
-    done
+    done < <(cd "$src_dir" && find . -type f ! -path '*/.DS_Store')
 }
 
 # ─────────────────────────────────────────────────────────────────
@@ -164,8 +166,8 @@ fi
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║ BMAD Claude Design Patch (v3) — Installer                     ║"
-echo "║ Mode: $MODE"
 echo "╚══════════════════════════════════════════════════════════════╝"
+echo "Mode: $MODE"
 echo ""
 echo "Project: $PROJECT_DIR"
 echo "Patch:   $PATCH_DIR"
@@ -207,6 +209,37 @@ if [ "$MODE" = "fresh" ] && [ -f "$PATCH_VERSION_FILE" ]; then
     echo "ERROR: Patch already installed (commit $INSTALLED)."
     echo "To update, run: bash $PATCH_DIR/install.sh --upgrade"
     exit 1
+fi
+
+# Upgrade mode: short-circuit if already at latest (and no symlink migration pending)
+if [ "$MODE" = "upgrade" ] && [ -f "$PATCH_VERSION_FILE" ]; then
+    INSTALLED="$(read_installed_commit)"
+    CURRENT="$(patch_current_commit)"
+    NEEDS_SYMLINK_MIGRATION=0
+    for skill in bmad-roadmap-v2 bmad-claude-design-prep bmad-sync-from-design \
+                 bmad-create-epics-and-stories-v2 ship bmad-business-change \
+                 bmad-sync-artifacts; do
+        [ -L "$CLAUDE_SKILLS_DIR/$skill" ] && { NEEDS_SYMLINK_MIGRATION=1; break; }
+    done
+    if [ "$INSTALLED" = "$CURRENT" ] && [ $NEEDS_SYMLINK_MIGRATION -eq 0 ]; then
+        echo "✅ Already at latest ($INSTALLED). Nothing to do."
+        echo "   If you want to re-run anyway, delete .bmad/.patch-version first."
+        exit 0
+    fi
+fi
+
+# Upgrade mode without prior install: tell user to run fresh install instead
+if [ "$MODE" = "upgrade" ] && [ ! -f "$PATCH_VERSION_FILE" ]; then
+    # Allow if symlinks from old installer are present (migration case)
+    HAS_SYMLINKS=0
+    for skill in bmad-roadmap-v2 bmad-claude-design-prep bmad-sync-from-design; do
+        [ -L "$CLAUDE_SKILLS_DIR/$skill" ] && { HAS_SYMLINKS=1; break; }
+    done
+    if [ $HAS_SYMLINKS -eq 0 ]; then
+        echo "ERROR: No existing install found (no .bmad/.patch-version, no symlinks)."
+        echo "Run a fresh install instead: bash $PATCH_DIR/install.sh"
+        exit 1
+    fi
 fi
 
 # ─────────────────────────────────────────────────────────────────
