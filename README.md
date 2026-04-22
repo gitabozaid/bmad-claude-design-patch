@@ -15,11 +15,13 @@ A BMAD patch that replaces the WDS + per-screen-spec workflow with **BMM-native 
 - [Claude.ai](https://claude.ai) Pro (or higher) subscription — Claude Design is Pro+
 - New project, OR existing project that's never had v1 installed
 
-**Install:**
+**Fresh install:**
 ```bash
 cd /path/to/your/project
 bash ~/Desktop/workspace/abozaid/bmad-claude-design-patch/install.sh
 ```
+
+Copies the patch files into your project (self-contained — the project owns its copy, not a link to the patch repo). Records the installed commit in `.bmad/.patch-version`.
 
 **Start the roadmap:**
 ```bash
@@ -27,6 +29,32 @@ bash ~/Desktop/workspace/abozaid/bmad-claude-design-patch/install.sh
 ```
 
 That's it. The orchestrator walks you through all 9 phases.
+
+## Install modes
+
+```bash
+# Fresh install (default) — copies files into the project
+bash install.sh
+
+# Update existing install to the latest patch commit
+bash install.sh --upgrade
+
+# Check which commit is installed + drift from remote (read-only)
+bash install.sh --status
+
+# Dev mode only — symlink instead of copy (for iterating on the patch itself)
+bash install.sh --symlink
+```
+
+### How upgrades work
+
+`--upgrade` copies the latest patch files over the existing install. Any file that was **locally modified** (differs from what was originally installed) is **backed up first** to `.bmad/backups/<timestamp>/` before being overwritten. Unmodified files are silently overwritten.
+
+Your project data (`design-progress.yaml`, `deferred-work.md`, `bundle.md` files, etc.) is never overwritten — those are treated as project-owned and only seeded on fresh install if absent.
+
+### Migration from earlier symlink installs
+
+Older versions of this installer (pre-v3.2) symlinked skills into `.claude/skills/` instead of copying. Running `--upgrade` on such a project auto-detects the symlinks and converts them to real copies. No manual steps needed.
 
 ---
 
