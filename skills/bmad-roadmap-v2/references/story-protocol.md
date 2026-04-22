@@ -97,10 +97,18 @@ Do exactly these steps:
    c. Routing — add route entries. Match the project's routing convention.
    d. i18n — add translation keys for all user-facing strings. Support AR + EN if the project is bilingual.
    e. API — implement the endpoint(s) the story needs (Laravel route + controller, Express endpoint, etc.).
-   f. DB — add migrations if the story needs new tables/columns. Seed data if applicable.
-   g. Tests — unit tests for the UI component and API controller, one happy-path E2E for the screen.
+   f. DB:
+      - **Migration** — add new tables/columns the story needs. Include any reference data (enums, lookups, required-from-day-one records) directly in the migration.
+      - **Dev seeder** — create or extend a seeder in `database/seeders/` that populates the dev DB with **5–20 realistic fake records** for this feature. The goal: when the user opens the screen in their browser, they see populated data without having to create records manually. Call the seeder from `DatabaseSeeder.php` so `php artisan db:seed` covers it.
+      - **Factories** — if this story introduces a new model, add a factory in `database/factories/`. Factories power the dev seeder AND the automated tests — same source of fake data, different consumers.
+   g. Tests — unit tests for the UI component and API controller, one happy-path E2E for the screen. Tests use factories (not seeders) for isolation.
 
-6. Verify (stack-specific):
+6. Prepare the dev database for the user review:
+   - If backend is Laravel: `cd backend && php artisan migrate:fresh --seed`
+   - If backend is Node: run the equivalent seed command for the project's ORM (Prisma: `pnpm prisma migrate reset --force`, Drizzle: `pnpm db:push && pnpm db:seed`, etc.)
+   - Confirm the dev DB now has the seed data visible in the screen.
+
+7. Verify (stack-specific):
    - Node frontend: `cd frontend && pnpm tsc --noEmit && pnpm lint` (or at root if single-stack)
    - Laravel backend: `cd backend && php artisan test`
    - Single-stack projects: adapt commands to the detected stack.
@@ -113,8 +121,41 @@ Bundle fetched: <yes/no — from WebFetch or local ZIP>
 Screens built: <list of URLs where the screen is accessible locally>
 API endpoints: <method path list>
 Migrations: <names or "none">
+Dev seeder: <file path, N seed records added, or "none — no new data needed">
+Factories: <names or "none">
 Tests: <N passing>
 Verify: TypeScript PASS, Lint PASS, Tests PASS
+
+Test Checklist (for Step 3 User Review — derived from the story file):
+
+  Happy path:
+    - [ ] <AC 1 in plain language, e.g., "User sees the list of languages populated from DB">
+    - [ ] <AC 2>
+    ...
+
+  Edge cases:
+    - [ ] <Edge case 1 from the story, e.g., "Tapping a language stores it in localStorage">
+    - [ ] <Edge case 2>
+    ...
+
+  States to verify:
+    - [ ] Default view loads with seeded data
+    - [ ] Loading state (throttle network in DevTools to simulate)
+    - [ ] Empty state (temporarily truncate the seed table OR add a query param)
+    - [ ] Error state (stop the API server OR inspect a broken endpoint)
+    - [ ] Hover / focused / disabled (for interactive elements, if applicable)
+
+  Interactions from design:
+    - [ ] <Interaction 1 from the design / story, e.g., "Continue button navigates to /onboard/level">
+    - [ ] <Interaction 2>
+    ...
+
+  Bilingual (only if project supports AR + EN):
+    - [ ] Screen renders correctly in LTR (English)
+    - [ ] Screen renders correctly in RTL (Arabic)
+    - [ ] Language switcher toggles direction without reload
+
+Generate the checklist items by reading the story's Acceptance Criteria, Edge Cases, Interactions, and Design Reference. Only include sections that apply — skip "Bilingual" for monolingual projects, skip "Empty state" if the data is guaranteed to always be non-empty, etc.
 ```
 
 **When the agent returns, print its full Return block verbatim.**
@@ -123,14 +164,26 @@ When Saneh returns, note the screens' URLs. Mark done. **PAUSE — go to Step 3.
 
 ### Step 3 — User Review
 
-Tell the user:
+Print the user-facing review block — includes the Test Checklist from Saneh's Return block:
 
 ```
 Story {X.Y} done.
-Screen(s): {URLs from Saneh}
-API: {endpoints from Saneh}
 
-Review the screen in your browser. Say "continue" when done, or tell me fixes.
+Screen(s):         {URLs from Saneh}
+API endpoint(s):   {endpoints from Saneh}
+Dev seed data:     {seeder file, N records — from Saneh}
+Migrations:        {list or "none"}
+
+=== TEST CHECKLIST ===
+
+{paste Saneh's Test Checklist verbatim — includes:
+  Happy path, Edge cases, States, Interactions, Bilingual (if applicable)}
+
+======================
+
+Open the screen in your browser. Walk through each item above and tick it
+in your head (or copy the checklist to a notepad). When all items pass,
+reply "continue" or "yes". Or list any fixes you noticed (free-form).
 ```
 
 Wait for user response:

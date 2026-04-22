@@ -107,8 +107,14 @@ Step 2:  Saneh — Full-Stack Build
          (reads story + Design Reference block; reads app_shell.status;
           if implemented: imports AppLayout and wraps content, does NOT
           modify shell; fetches bundle; detects stack; builds UI + state
-          + routing + i18n + API + DB migration + tests in one pass)
+          + routing + i18n + API + DB migration + **dev seeder** +
+          **factories** + tests in one pass; runs migrate:fresh --seed
+          so the dev DB has realistic fake data; returns a Test Checklist
+          derived from the story's AC/Edge Cases/Interactions)
 Step 3:  User Review [PAUSE]
+         Orchestrator prints the Test Checklist verbatim so the user
+         knows exactly what to verify in the browser (happy path, edge
+         cases, states, interactions, bilingual if applicable).
          Fixes classified three-way (CONTENT / JOURNEY / SHELL)
 Step 4:  Naqed — Visual QA (in this order)
          4a. Design Compliance Check (vs Bundle URL)
