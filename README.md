@@ -129,54 +129,52 @@ Phase 4 runs a loop per epic. For each epic:
 
 ---
 
-## Before Phase 4 — App Shell in Code (one-time prerequisite)
+## Phase 4 setup (one-time, before per-epic loops)
 
-Claude Design doesn't have a Figma-style shared layout across projects. To guarantee consistency across journey-per-project designs, the app shell (header, footer, sidebar, navigation — the chrome that appears on most screens) lives **in the codebase**, not in each Claude Design project.
+Phase 4 uses **ONE Claude Design project for the whole product**, hosting one chat per epic/journey inside it. Two setup steps:
 
-The workflow:
+### Setup 1 — Org-level Design System
 
-1. Go to [claude.ai/design](https://claude.ai/design) and create a project named **"00 — App Shell"**
-2. Design the shell and all variants:
-   - Default state, scrolled state, mobile (hamburger), desktop
-   - Any role-gated differences (admin vs regular user)
-3. Export → **Hand off to Claude Code**
-4. In Claude Code, paste the handoff prompt on a new branch `chore/app-shell`
-5. Claude Code implements `AppLayout.tsx` (or your stack's equivalent):
-   - Next.js App Router → `app/layout.tsx`
-   - Next.js Pages Router → `pages/_app.tsx`
-   - Vue → `layouts/default.vue`
-   - Vanilla React → `src/App.tsx`
-6. Review + merge to `main` — this is a **foundation change**, not a story. No Kateb, no Naqed, no retrospective.
-7. Run `/bmad-roadmap-v2`. At the Phase 4 pre-flight, answer `[yes]` and provide the path to AppLayout. The orchestrator records it in `design-progress.yaml` and proceeds to the per-epic loop.
+Done once per organization, then inherited by every project in it:
 
-**The payoff:** every per-epic Claude Design project attaches the codebase (which now contains the shell) so all generated screens respect the same shell automatically. And the story protocol enforces "shell is fixed" on the build side (Saneh) and compare side (Naqed).
+1. Open [claude.ai/design](https://claude.ai/design) and switch to (or create) the org for this product.
+2. Open **Design System** in the org.
+3. Upload the canonical inputs:
+   - `tokens.css` — Tailwind v4 CSS variables (colors / spacing / radius / typography)
+   - `design-system-brief.md` — brand identity + aesthetic guardrails
+   - `typography-specimens.md` — type scale specimens
+   - `component-inventory.md` — Tier 2 + Tier 3 expected components
+   - `fonts/*.woff2` + `fonts/fonts.css` — self-hosted fonts
+   - Or link a GitHub repo containing the above
+4. Wait for Claude Design to generate preview cards (~5–10 min).
+5. Sanity-check the auto-generated preview cards (Color · Primary, Type · Headings, etc.). Use the per-card "Looks good" / "Needs work…" buttons to refine.
+6. Toggle **Published**.
 
-### Pre-flight options
+### Setup 2 — Product project
 
-When `/bmad-roadmap-v2` reaches Phase 4, it asks:
+Done once per product:
 
-- **`[yes]`** — the shell is implemented; tell me the path
-- **`[no]`** — guide me through the shell workflow (do the steps above, come back)
-- **`[skip]`** — my product has no persistent shell (single-screen landing, minimal PWA, interstitial). Skip all shell-related instructions. Codebase attachment becomes OPTIONAL instead of REQUIRED.
+1. From the Claude Design homepage, click **+ Create new design** (or **Use this system → ↗ New design** from the design system page).
+2. Project name: **the product name** (NOT an epic name).
+3. Design system: the one you just published.
+4. Pick **High fidelity + Interactive prototype** → **Create**.
+5. Inside the project, drag-drop the **stable product docs** ONCE (they will live at the project level and inherit into every chat):
+   - `prd.md`
+   - `ux-design-specification.md`
+   - `architecture.md`
+   - `epics.md`
+6. Send a brief confirmation message: "These are the stable project docs. I'll start a new chat per epic and attach the epic's stories then. Acknowledge and wait."
+7. Record the project URL in `_bmad-output/implementation-artifacts/design-progress.yaml: product_project.url`.
 
-The `[skip]` choice is sticky — the orchestrator won't re-ask.
+### Why no separate "App Shell" project
 
-### Shell revision mid-project
+Claude Design carries shell consistency across chats inside the same project automatically. Shell evolution happens organically inside the journey/epic chats and is captured in each handoff bundle. The earlier patch revision included a `chore/app-shell` workflow as a separate prerequisite — it was removed (2026-05-12) once it became clear the project-level model made it unnecessary.
 
-If during Phase 6 (Build) a story surfaces a shell-level issue ("header should be smaller", "nav items wrong"), the story protocol's "Escape to App Shell" path kicks in: iterate in the "00 — App Shell" Claude Design project, re-implement AppLayout, re-merge to main. Stories already shipped auto-inherit the new shell (it's a shared component).
+If during Phase 6 (Build) a story surfaces a shell-level issue, the story protocol's "Escape to App Shell" path now routes back into the same product project (start a new chat, iterate on the shell, sync) — no separate project required.
 
----
+### Why stories upload per-chat and not at project level
 
-## Design System setup (one-time, before Phase 4)
-
-Before the first epic of Phase 4 (but after the App Shell workflow above):
-1. Open [claude.ai/design](https://claude.ai/design)
-2. Create an organization for this project
-3. Upload your project's design system (link GitHub repo OR upload component library folder)
-4. Review the extracted tokens + components
-5. Toggle "Published" so every project under the organization inherits it
-
-Every subsequent Claude Design project for this product automatically uses the same design system. No need to repeat per epic.
+Stories get rewritten by `/bmad-sync-from-design` (acceptance criteria + edge cases + Design Reference block). If stories were uploaded at the project level, an older chat would inherit the pre-sync version while disk has the post-sync version → drift. Per-chat upload from disk guarantees every chat sees the latest version.
 
 ---
 

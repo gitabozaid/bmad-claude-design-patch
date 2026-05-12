@@ -42,37 +42,35 @@ For legacy projects on WDS + per-screen specs + split UI/Backend stories, use [v
 
 Two sequential setup steps:
 
-**Setup 1 — Organization-level design system:**
-Open claude.ai/design → create organization for the project → upload design system (link repo or asset files) → toggle "Published".
+**Setup 1 — Org-level Design System:**
+Open claude.ai/design → switch to (or create) the org → upload design system inputs (tokens.css, design-system-brief.md, typography-specimens.md, component-inventory.md, fonts, or a linked GitHub repo) → sanity-check the generated preview cards → toggle **Published**.
 
-**Setup 2 — App Shell Pre-flight (new in v3.1):**
-Claude Design has no Figma-style layout inheritance across projects. To guarantee shell consistency, the app shell (header, footer, sidebar, navigation) lives in the **codebase**, not in each Claude Design project. The orchestrator asks:
+**Setup 2 — Product project (replaces the old App Shell pre-flight):**
+Create ONE Claude Design project named after the product (NOT after an epic). This project will host one chat per journey/epic. Upload the **stable product docs** ONCE here at the project level:
+- `_bmad-output/planning-artifacts/prd.md`
+- `_bmad-output/planning-artifacts/ux-design-specification.md`
+- `_bmad-output/planning-artifacts/architecture.md`
+- `_bmad-output/planning-artifacts/epics.md`
 
-- `[yes]` → the shell is implemented; tell me the path (e.g., `frontend/src/components/layout/AppLayout.tsx`)
-- `[no]`  → guide me through the shell workflow:
-  1. Create a Claude Design project "00 — App Shell"
-  2. Design the shell (all variants: default, scrolled, mobile, desktop)
-  3. Export → Hand off to Claude Code
-  4. Implement as `AppLayout.tsx` on branch `chore/app-shell`
-  5. Review + merge to main
-  6. Come back and answer `[yes]`
-- `[skip]` → product has no persistent shell (single-screen landing / minimal PWA). All shell-specific instructions are skipped; codebase attachment becomes OPTIONAL.
+Send a brief confirmation message in the project chat so Claude Design acknowledges the docs ("These are the stable project docs. I'll start a new chat per epic and attach the epic's stories then. Acknowledge and wait."), then start fresh chats per epic.
 
-The choice is recorded in `design-progress.yaml: app_shell` and is sticky.
+Record the URL in `_bmad-output/implementation-artifacts/design-progress.yaml: product_project.url`.
 
-**The shell is infrastructure, NOT a story.** Foundation branch, merged directly to main. No Kateb, no Naqed, no retrospective. Tracked in `design-progress.yaml.app_shell` only.
+**No separate "App Shell" project.** Earlier patch revisions included a `chore/app-shell` workflow as a separate prerequisite. It was removed (2026-05-12) once Claude Design's project-level shell consistency made it unnecessary. Shell evolution happens organically inside the journey/epic chats; if a story surfaces a shell-level issue mid-build, the escape path routes back to the SAME product project (new chat) — never to a separate "00 — App Shell" project.
 
 ### Loop per epic
 
 For each epic from Phase 3:
 
-1. `/bmad-claude-design-prep --epic=<slug>` — prints **attachment checklist** (exact file paths to upload, including REQUIRED codebase attachment when shell is `implemented`) + **ready-to-paste prompt** (with aesthetics guidance + "App shell constraint" section when shell is implemented). Creates `design-process/claude-design-handoffs/<slug>/bundle.md`.
+1. `/bmad-claude-design-prep --epic=<slug>` — prints **chat-level attachment checklist** (ONLY the epic's stories — the PRD/UX/Architecture/Epics are already at the project level) + **ready-to-paste prompt** (mentions the project-level docs by name + aesthetics guidance + viewport coverage). Creates `design-process/claude-design-handoffs/<slug>/bundle.md`.
 2. User work in browser:
-   - Create a new Claude Design project for the epic
-   - Upload the files from the checklist (PRD + UX doc + epic + stories + **codebase** if shell is implemented)
-   - Paste the prompt (includes "Don't redesign the shell; focus on main content area only" when applicable)
+   - **Inside the existing product project**, click **+ Start a new chat** (top-right + button or the "New chat" prompt when context exceeds 100k tokens)
+   - Name the chat after the epic
+   - Upload ONLY the epic's stories (latest versions from disk — they may have been rewritten by a prior sync)
+   - Paste the prompt
    - Iterate (inline comments for small changes, chat for structural changes)
    - Ask for edge states (empty, error, loading, RTL if bilingual)
+   - Ask for every supported viewport per screen (no surface is single-platform)
    - Export → **"Hand off to Claude Code"** → get bundle URL + handoff prompt
 3. User pastes bundle URL + handoff prompt into `bundle.md`
 4. `/bmad-sync-from-design --epic=<slug>` — WebFetches the bundle, deep-compares vs existing stories (screen/section/component/copy/state level), propagates changes autonomously to stories/epic/UX doc, marks epic `design-complete`, prints diff summary.
@@ -104,13 +102,12 @@ Follow `.claude/skills/bmad-roadmap-v2/references/story-protocol.md`. 10 steps i
 ```
 Step 1:  Branch
 Step 2:  Saneh — Full-Stack Build
-         (reads story + Design Reference block; reads app_shell.status;
-          if implemented: imports AppLayout and wraps content, does NOT
-          modify shell; fetches bundle; detects stack; builds UI + state
-          + routing + i18n + API + DB migration + **dev seeder** +
-          **factories** + tests in one pass; runs migrate:fresh --seed
-          so the dev DB has realistic fake data; returns a Test Checklist
-          derived from the story's AC/Edge Cases/Interactions)
+         (reads story + Design Reference block; fetches bundle; detects
+          stack; builds UI + state + routing + i18n + API + DB migration
+          + **dev seeder** + **factories** + tests in one pass; runs
+          migrate:fresh --seed so the dev DB has realistic fake data;
+          returns a Test Checklist derived from the story's
+          AC/Edge Cases/Interactions)
 Step 3:  User Review [PAUSE]
          Orchestrator prints the Test Checklist verbatim so the user
          knows exactly what to verify in the browser (happy path, edge
@@ -118,15 +115,15 @@ Step 3:  User Review [PAUSE]
          Fixes classified three-way (CONTENT / JOURNEY / SHELL)
 Step 4:  Naqed — Visual QA (in this order)
          4a. Design Compliance Check (vs Bundle URL)
-             — when shell is implemented, compares MAIN CONTENT AREA only;
-               shell differences are not flagged as violations
          4b. Critique (UX)
          4c. Audit (a11y + performance)
 Step 5:  User Final Approval [PAUSE]
-         Three-way fix classification:
-           CONTENT-level → re-invoke Saneh (content, copy, CSS tweaks)
-           JOURNEY-DESIGN-level → Escape to Phase 4 for this epic (layout, new screen)
-           SHELL-level → Escape to App Shell (header, footer, navigation)
+         Two-way fix classification:
+           CONTENT-level → re-invoke Saneh (content, copy, CSS tweaks,
+                          minor behavior, header/sidebar adjustments)
+           JOURNEY-DESIGN-level → Escape to Phase 4 for this epic (start
+                                  a new chat in the SAME product project,
+                                  iterate, re-export, re-sync)
          Approve → continue to Step 6.
 Step 6:  /simplify
 Step 7:  /bmad-code-review (auto-mode)
@@ -139,21 +136,9 @@ No Kateb step (reviews moved to Phase 3). No Mir'a step (sync happens in Phase 4
 
 ### Escape to Phase 4 (journey design)
 
-If Step 3 or Step 5 surfaces a **JOURNEY-DESIGN-level** change (layout of content area, new screen, rearranged sections), return to Phase 4 for the affected epic: reset its `design-progress.yaml` status to `in-progress`, open the Claude Design journey project, iterate, re-export, re-run `/bmad-sync-from-design`, then resume Phase 6 at the affected story.
+If Step 3 or Step 5 surfaces a **JOURNEY-DESIGN-level** change (layout, new screen, rearranged sections, header/sidebar/nav-level rework), return to Phase 4 for the affected epic: reset its `design-progress.yaml` status to `in-progress`, open the product Claude Design project, start a new chat (or continue the existing epic chat), iterate, re-export, re-run `/bmad-sync-from-design`, then resume Phase 6 at the affected story.
 
-### Escape to App Shell (shell design)
-
-If Step 3 or Step 5 surfaces a **SHELL-level** change (header, footer, sidebar, navigation, global chrome), the journey project can't fix this — the shell lives in "00 — App Shell" and in `AppLayout` code:
-
-1. Set `app_shell.status` back to `pending` (or `design-complete` if only code needs updating).
-2. Open the Claude Design project "00 — App Shell" (URL in `design-progress.yaml.app_shell.claude_design_project_url`).
-3. Iterate in Claude Design → Export → Hand off to Claude Code.
-4. Re-implement `AppLayout.tsx` on branch `chore/app-shell`.
-5. Review + merge to main.
-6. Update `app_shell.status = implemented`.
-7. Resume Phase 6 at the affected story.
-
-**Impact:** any story already shipped that uses AppLayout automatically inherits the updated shell (shared component). Only stories with content-area regressions need rebuild.
+Because all journey chats live inside the SAME product project, shell-style changes propagate as conventions across chats automatically — the user doesn't need a separate workflow for them.
 
 ## 7. Deploy (Full-Stack)
 

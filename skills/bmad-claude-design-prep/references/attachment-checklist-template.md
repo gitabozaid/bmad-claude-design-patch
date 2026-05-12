@@ -1,77 +1,49 @@
 # Attachment Checklist Template
 
-Format for the checklist printed to the terminal.
+Format for the chat-level checklist printed to the terminal. The user pastes story files into a new chat inside the existing product project; project-level docs (PRD, UX, Architecture, Epics) are already attached at the project level — they are listed in the "Already attached" section for reference only.
 
 ## Template
 
 ```
 ╔══════════════════════════════════════════════════════════════════╗
-║ CLAUDE DESIGN — ATTACHMENTS CHECKLIST                              ║
+║ CLAUDE DESIGN — CHAT ATTACHMENTS CHECKLIST                         ║
 ║ Epic: {{slug}} — {{name}}                                          ║
+║ Inside product project: {{product_project_url}}                    ║
 ╠══════════════════════════════════════════════════════════════════╣
-║ Upload these files to your Claude Design project:                 ║
+║ Already attached at the project level (do NOT re-upload):          ║
+║   ✓ prd.md                                                         ║
+║   ✓ ux-design-specification.md                                     ║
+║   ✓ architecture.md                                                ║
+║   ✓ epics.md                                                       ║
 ║                                                                    ║
-║  REQUIRED:                                                         ║
-║  [ ] 1. {{prd-path}}                                               ║
-║         (full PRD)                                                 ║
+║ Upload these into the NEW chat (chat-level, latest versions):      ║
 ║                                                                    ║
-║  [ ] 2. {{ux-doc-path}}                                            ║
-║         (full UX design specification)                             ║
-║                                                                    ║
-║  [ ] 3. {{epic-path}}                                              ║
-║         (this epic's definition)                                   ║
-║                                                                    ║
-║  [ ] 4. Stories for this epic ({{N}} files):                      ║
+║  [ ] Stories for this epic ({{N}} files):                          ║
 {{#each stories}}
 ║         - {{this.path}}                                            ║
 {{/each}}
 ║                                                                    ║
-{{app_shell_attachment_line}}
+║ OPTIONAL:                                                          ║
+║  [ ] Reference screenshots (inspiration, competitor screens)       ║
+║  [ ] Updated design-system docs IF the design system changed       ║
+║      since this product project was created                        ║
 ║                                                                    ║
-║  OPTIONAL:                                                         ║
-║  [ ] 5. {{design-system-path}}                                     ║
-║         (skip if design system is attached org-level)              ║
+║ NOTES:                                                             ║
+║  • Stories must be uploaded fresh in every new chat — they may     ║
+║    have been updated by a prior /bmad-sync-from-design run, and    ║
+║    the version uploaded to an older chat is now stale.             ║
+║  • There is no "app shell" attachment — Claude Design carries      ║
+║    shell consistency across chats inside the project automatically.║
 ║                                                                    ║
-║  [ ] 6. Reference screenshots                                      ║
-║         (inspiration, competitor UI, existing screens)             ║
-║                                                                    ║
-║  NOTE: these file paths are absolute. Use your OS file manager     ║
-║        to locate them, or `open {{project-root}}` to open the      ║
-║        project in Finder/Explorer.                                 ║
+║ Paths are absolute. Open the project root in Finder/Explorer:      ║
+║   open {{project_root}}                                            ║
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
-## Placeholder: `{{app_shell_attachment_line}}`
-
-Conditional block inserted above the OPTIONAL section, based on `design-progress.yaml: app_shell.status`:
-
-- **`status == "implemented"`** — render the REQUIRED codebase attachment block:
-
-```
-║  [ ] 5. [REQUIRED] Attach your codebase to the Claude Design project  ║
-║         - Local: select the frontend/ directory                    ║
-║           (exclude node_modules, .next, .git)                      ║
-║         - Remote: link your GitHub repo                            ║
-║         - Claude Design reads AppLayout + all components           ║
-║         - Path to shell: {{layout_component_path}}                 ║
-```
-
-Re-number the OPTIONAL items that follow (5 → 6, 6 → 7).
-
-- **`status == "none"`** — render a softer OPTIONAL version:
-
-```
-║  [ ] 5. [OPTIONAL] Attach your codebase to the Claude Design project ║
-║         - Useful for design system component inference             ║
-║         - No app shell to preserve (status: none)                  ║
-```
-
-- **`status == "pending"`** — do not render the checklist; halt with an error (Phase 4 pre-flight should have caught this).
-
 ## Rationale
 
-- Absolute paths prevent confusion across different project roots
-- Checkbox prefixes let users track progress as they upload
+- The product-level docs are listed but checked-✓ — confirms they're already attached, prevents re-upload churn
+- Stories are checkbox-able for the user to track progress as they drag-drop into the chat
 - Banner borders make the block visually distinct when copy-pasted
-- Optional section clearly separated from required
-- Codebase attachment is REQUIRED when app shell is implemented in code — ensures Claude Design respects the shell across all per-epic projects
+- Absolute paths prevent confusion across project roots
+- The "stale story version" warning is critical: sync-from-design can rewrite story files, and an older chat's attached version becomes outdated. Always re-upload from disk for a new chat.

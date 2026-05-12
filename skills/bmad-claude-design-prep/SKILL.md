@@ -1,6 +1,6 @@
 ---
 name: bmad-claude-design-prep
-description: "Prepare a Claude Design session for a specific epic — generate the attachment checklist, the ready-to-paste prompt, and the handoff landing file. Use when the user says 'prep claude design', 'prepare claude design for epic X', 'next epic to design', or when invoked by the /bmad-roadmap-v2 Phase 4 loop. The skill does NOT do the design work itself (that's manual in claude.ai/design); it packages everything the user needs to paste and upload, then creates the target file where the user pastes the handoff result."
+description: "Prepare a Claude Design session for a specific epic — generate the chat-level attachment checklist, the ready-to-paste prompt, and the handoff landing file. Use when the user says 'prep claude design', 'prepare claude design for epic X', 'next epic to design', or when invoked by the /bmad-roadmap-v2 Phase 4 loop. The skill does NOT do the design work itself (that's manual in claude.ai/design); it packages everything the user needs to paste and upload, then creates the target file where the user pastes the handoff result."
 ---
 
 # BMAD Claude Design Prep
@@ -9,65 +9,71 @@ description: "Prepare a Claude Design session for a specific epic — generate t
 
 Phase 4 of the roadmap is a per-epic loop: design every screen of an epic in Claude Design, export a handoff bundle, sync the changes back. This skill handles the **prep step** before the user opens a browser — it collects all the context, generates a prompt, and prepares the landing file where the user will paste the handoff result.
 
+## Mental Model: project-level vs chat-level uploads
+
+Phase 4 uses ONE Claude Design project for the entire product. Inside that project:
+
+- **Project-level uploads** (uploaded ONCE during Phase 4 setup, inherited by all chats):
+  PRD, UX spec, Architecture, Epics list, optional product brief.
+- **Chat-level uploads** (uploaded per-epic chat, this skill emits the checklist):
+  ONLY the story files for this epic.
+
+This skill emits the chat-level checklist + prompt for the user to paste into a new chat inside the existing project. It does NOT re-list the project-level docs (they're already attached) — the prompt mentions them by name so Claude Design knows to consult them.
+
+There is **no separate "00 — App Shell" project**. Claude Design carries shell consistency across chats within a project; shell evolution happens organically inside the journey/epic chats.
+
 ## Args
 
 ```
 /bmad-claude-design-prep --epic=<slug>
   [--prd <path>]                       # default: _bmad-output/planning-artifacts/prd.md
   [--ux-doc <path>]                    # default: _bmad-output/planning-artifacts/ux-design-specification.md
-  [--epics-dir <path>]                 # default: _bmad-output/implementation-artifacts/epics/
+  [--epics-file <path>]                # default: _bmad-output/planning-artifacts/epics.md (or epics-dir if shard)
   [--stories-dir <path>]               # default: _bmad-output/implementation-artifacts/stories/
-  [--design-system-ref <path>]         # optional — a human-readable design system file (e.g. design-system.md)
+  [--design-system-ref <path>]         # optional — for sanity check that the org-level design system covers this epic's needs
 ```
 
 ## Pipeline
 
 ### 1. Load inputs
 
-- Read `epics/<slug>.md` — get epic name, description, and list of stories
-- Read each story file in `stories/` that belongs to this epic (prefix match or explicit reference in epic file)
-- Read relevant section of `ux-design-specification.md` (journey section matching the epic)
-- Read relevant section(s) of `prd.md` (FR references mentioned in the stories)
-- Read `_bmad-output/implementation-artifacts/design-progress.yaml` and note `app_shell.status` + `app_shell.layout_component_path` — this controls how the checklist and prompt are rendered
+- Read the epic from `epics.md` (or `epics/<slug>.md` if sharded) — get epic name, description, FRs covered, and list of stories
+- Read each story file in `stories/` that belongs to this epic (prefix match like `2.*.md` for `epic-2-...`)
+- Read relevant section of `ux-design-specification.md` (journey section matching the epic) for context summary
+- Read `_bmad-output/implementation-artifacts/design-progress.yaml` and confirm `design_system.status == "published"` and `design_system.product_project_url` is set
+  - If `design_system.status != "published"` → HALT with error: "Org-level design system is not published. Complete Phase 4 Setup 1 (publish design system) before running this skill."
+  - If `design_system.product_project_url` is missing → HALT with error: "Product-level Claude Design project URL is missing. Complete Phase 4 Setup 2 (create product project + upload stable docs) and record the URL in design-progress.yaml."
 
-### 1b. App shell status gate
+### 2. Build the chat-level attachment checklist
 
-- If `app_shell.status == "pending"` → HALT with error: "Phase 4 pre-flight was not completed. Run `/bmad-roadmap-v2` and answer the App Shell pre-flight question first." Do not generate checklist or prompt.
-- If `app_shell.status == "implemented"` → render the REQUIRED codebase attachment line in the checklist AND include the "App shell constraint" block in the prompt. Substitute `{{layout_component_path}}` with the recorded path.
-- If `app_shell.status == "none"` → render the OPTIONAL codebase attachment line in the checklist (softer wording) AND leave the "App shell constraint" block empty in the prompt. No shell instructions propagate.
+Only the epic's stories. The stable docs (PRD, UX, Architecture, epics list) are at project level already.
 
-### 2. Build the attachment checklist
-
-Produce a terminal-printable checklist listing exactly which files to upload to Claude Design. Format:
+Format from `references/attachment-checklist-template.md`:
 
 ```
 ╔══════════════════════════════════════════════════════════════════╗
-║ CLAUDE DESIGN — ATTACHMENTS CHECKLIST                              ║
+║ CLAUDE DESIGN — CHAT ATTACHMENTS CHECKLIST                         ║
 ║ Epic: <slug> — <name>                                              ║
+║ Inside: <product-project-url>                                      ║
 ╠══════════════════════════════════════════════════════════════════╣
-║ Upload these files to your Claude Design project:                 ║
+║ Project-level docs already attached (do NOT re-upload):            ║
+║   ✓ prd.md                                                         ║
+║   ✓ ux-design-specification.md                                     ║
+║   ✓ architecture.md                                                ║
+║   ✓ epics.md                                                       ║
 ║                                                                    ║
-║  1. {project-root}/_bmad-output/planning-artifacts/prd.md         ║
-║     (full PRD — Claude will use the FRs relevant to this epic)    ║
+║ Upload these to the new chat:                                      ║
 ║                                                                    ║
-║  2. {project-root}/_bmad-output/planning-artifacts/                ║
-║     ux-design-specification.md                                     ║
-║     (full UX doc — Claude will reference the journey section)      ║
+║  [ ] Stories for this epic (<N> files — latest versions from disk):║
+║      - stories/<story-1>.md                                        ║
+║      - stories/<story-2>.md                                        ║
+║      ... etc                                                       ║
 ║                                                                    ║
-║  3. {project-root}/_bmad-output/implementation-artifacts/         ║
-║     epics/<slug>.md                                                ║
-║     (this epic's definition)                                       ║
+║ OPTIONAL:                                                          ║
+║  [ ] Reference screenshots (inspiration, competitor screens)       ║
 ║                                                                    ║
-║  4. Stories (<N> files):                                          ║
-║     - stories/<story-1>.md                                        ║
-║     - stories/<story-2>.md                                        ║
-║     ... etc                                                        ║
-║                                                                    ║
-║  OPTIONAL:                                                         ║
-║  5. Your project's design-system.md or equivalent                 ║
-║     (skip if design system is already attached org-level)         ║
-║                                                                    ║
-║  6. Reference screenshots (inspiration, existing screens)         ║
+║ NOTE: stories must be uploaded fresh in every new chat — they      ║
+║       may have been updated by a prior /bmad-sync-from-design run. ║
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
@@ -76,6 +82,7 @@ Produce a terminal-printable checklist listing exactly which files to upload to 
 Produce a **ready-to-paste prompt** using the template in `references/prompt-template.md`. The template includes:
 
 - Epic name and context
+- Explicit reference to the project-level docs (prd.md, ux-design-specification.md, architecture.md, epics.md) by name so Claude Design knows to consult them
 - Screen list with brief purpose for each (extracted from story files)
 - Platform / viewport / language requirements (from UX doc)
 - Role/permission context (from PRD / stories)
@@ -86,7 +93,7 @@ Print the prompt in a fenced block so the user can copy it cleanly:
 
 ```
 ╔══════════════════════════════════════════════════════════════════╗
-║ PASTE THIS INTO CLAUDE DESIGN CHAT:                                ║
+║ PASTE THIS INTO THE NEW CHAT (inside the product project):         ║
 ╚══════════════════════════════════════════════════════════════════╝
 
 <...prompt content...>
@@ -98,14 +105,14 @@ Print the prompt in a fenced block so the user can copy it cleanly:
 
 ### 4. Create the handoff landing file
 
-Create `design-process/claude-design-handoffs/<epic-slug>/bundle.md` using the template in `../../templates/bundle.md`. Pre-fill:
+Create `design-process/claude-design-handoffs/<epic-slug>/bundle.md` using the template. Pre-fill:
 - Epic name
 - Date (today)
 - Screens list (from stories)
 
 Leave blank:
 - Bundle URL (user pastes after handoff)
-- Claude Design Project URL (user pastes)
+- Claude Design Chat URL (user pastes — the chat URL inside the product project, not a new project)
 - Prompt (user pastes the handoff prompt from Claude Design)
 - Notes (optional)
 
@@ -117,6 +124,7 @@ Update `_bmad-output/implementation-artifacts/design-progress.yaml`:
 - Create the entry for this epic if missing
 - Set `status: in-progress`
 - Set `started: <today-ISO-date>`
+- Leave `chat_url` blank — the user fills it after they create the chat
 
 ### 6. Print next instructions to the user
 
@@ -124,15 +132,31 @@ After printing the checklist and prompt:
 
 ```
 NEXT STEPS:
-1. Open claude.ai/design in your browser.
-2. Create a new project named "<Epic Name>".
-3. Upload the files from the checklist above.
-4. Paste the prompt above into the chat.
-5. Iterate on the designs until satisfied.
-6. Export → "Hand off to Claude Code".
-7. Copy the bundle URL and handoff prompt Claude Design gives you.
-8. Paste them into: design-process/claude-design-handoffs/<epic-slug>/bundle.md
-9. Return here and run: /bmad-sync-from-design --epic=<epic-slug>
+
+1. Open the existing product project in Claude Design:
+   <product-project-url>
+
+2. Start a new chat in that project (top-right + button or "New chat" prompt
+   when context exceeds 100k tokens).
+
+3. Name the chat "<Epic Name>".
+
+4. Upload the stories from the checklist above (chat-level). DO NOT re-upload
+   the project-level docs — they're already attached.
+
+5. Paste the prompt into the chat.
+
+6. Iterate on designs until satisfied.
+
+7. Export → "Hand off to Claude Code".
+
+8. Copy the bundle URL and handoff prompt Claude Design gives you.
+
+9. Paste them into:
+   design-process/claude-design-handoffs/<epic-slug>/bundle.md
+
+10. Return here and run:
+    /bmad-sync-from-design --epic=<epic-slug>
 ```
 
 ## Idempotency
@@ -145,11 +169,12 @@ If called twice for the same epic:
 ## References
 
 - `references/prompt-template.md` — the full prompt template with aesthetics guidance
-- `references/attachment-checklist-template.md` — the checklist layout
-- `../../templates/bundle.md` — the template copied to `design-process/claude-design-handoffs/<epic-slug>/`
+- `references/attachment-checklist-template.md` — the chat-level checklist layout
 
 ## Non-goals
 
 - Does NOT open a browser or automate Claude Design work
-- Does NOT read the PRD or UX doc deeply — just identifies which files to attach
+- Does NOT re-list project-level docs (they're already attached at the project level)
+- Does NOT enforce any shell/AppLayout constraint — Claude Design maintains shell consistency across chats organically
+- Does NOT read the PRD or UX doc deeply — just identifies which story files to attach
 - Does NOT wait for the user's handoff result; that's a separate step (`/bmad-sync-from-design`)

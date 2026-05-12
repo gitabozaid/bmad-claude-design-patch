@@ -6,77 +6,71 @@
 
 ---
 
+## Mental Model
+
+Claude Design's project structure is hierarchical:
+
+```
+Organization (e.g., "Baseir")
+  ├─ Design System  ────────────  one-time setup, inherited org-wide
+  └─ Project (one per app)
+     ├─ Project-level files  ──  stable docs uploaded ONCE (PRD, UX spec, Architecture, epics list)
+     └─ Chats  ────────────────  one chat per epic / journey
+        └─ Chat-level uploads  ──  ONLY the stories for that epic
+```
+
+**Three mutual benefits of this layout:**
+1. **One project per product, not per epic.** The Baseir Claude Design project hosts all journeys as separate chats. Files stay attached at the project level once.
+2. **Stable docs upload once.** The PRD, UX spec, and Architecture rarely change. They sit at the project level and every chat inherits them.
+3. **Stories upload per-epic.** Stories DO change (sync from design can rewrite acceptance criteria). Re-uploading the latest version with each new epic chat prevents stale-story drift.
+
+**No standalone "00 — App Shell" project.** Claude Design's projects share design system state automatically; the shell concept evolves inside the journey/epic chats and is captured in the handoff bundles. There is no separate shell pre-flight.
+
+---
+
 ## One-Time Setup (before the loop starts)
 
-Two one-time setup steps:
+### Setup 1 — Org-level Design System
 
-### Setup 1 — Organization-level design system
+Done once per organization, then inherited by all projects:
 
-Done once per project, not per epic:
+1. Open [claude.ai/design](https://claude.ai/design) → top-left org switcher → use or create the organization for this product.
+2. Open the org's **Design System** section.
+3. Upload the design system inputs. The canonical set for any BMM-built product:
+   - **`tokens.css`** — Tailwind v4 CSS variables (canonical color / spacing / radius / typography tokens)
+   - **`design-system-brief.md`** — brand identity, anti-patterns, aesthetic guardrails (1 page)
+   - **`typography-specimens.md`** — type scale specimens for each font in the stack
+   - **`component-inventory.md`** — list of expected components (Tier 2 + Tier 3) the product will need
+   - **`fonts/*.woff2`** — self-hosted font files for every weight + script the product uses
+   - **`fonts/fonts.css`** — `@font-face` declarations referencing the woff2 files (with proper `unicode-range`)
+   - Optionally: GitHub repo URL if the design system is published as a standalone repo
+4. Wait ~5–10 minutes for Claude Design to generate previews, brand wordmark, UI kit cards.
+5. Toggle **Published** so every project in the org inherits the design system.
+6. (Optional) Toggle **Default** if this is the org's primary design system.
 
-1. Open [claude.ai/design](https://claude.ai/design) and create an organization for this project (or use an existing one)
-2. Upload the project's design system:
-   - **Best:** link the GitHub repository (or local directory) containing the project's component library + styles
-   - **Alternative:** manually upload color palette, typography specimens, component screenshots
-3. Review the extracted design system (colors, typography, components)
-4. Toggle the design system "Published" so every project under this organization inherits it
+**Sanity-check the extraction** — open the auto-generated preview cards (Color · Primary, Type · Headings, Component · Project card, etc.) and confirm tokens were parsed correctly. If a section looks wrong, click **Needs work…** and tell Claude Design what's off. Use the per-card "Looks good" / "Needs work…" feedback to refine.
 
-**Do this step ONLY once per project.** Subsequent epics reuse the same organization-level design system.
+**Do this step ONCE per product.** Subsequent journey chats reuse this setup.
 
-### Setup 2 — App Shell Pre-flight
+### Setup 2 — Create the Product Project
 
-Claude Design does NOT have Figma-style layout inheritance across projects. To guarantee shell consistency across per-epic projects, the app shell (header, footer, sidebar, navigation — the chrome that appears on most screens) must live in the CODEBASE before Phase 4 starts.
+Done once per product:
 
-**Pre-flight prompt (the orchestrator asks the user):**
+1. From the Claude Design homescreen, click **+ Create new design** (or **Use this system → ↗ New design** from the design system page).
+2. Project name: **the product name** (e.g., "Baseir"). NOT an epic name.
+3. Design system: pick the org-level system you just published.
+4. Choose **High fidelity + Interactive prototype**.
+5. Click **Create**. The project opens with a "Start with context" sidebar and a chat textarea.
+6. Upload the **project-level stable docs** ONCE (drag-drop into the chat or use Import → file picker). These are the docs every chat will inherit:
+   - `_bmad-output/planning-artifacts/prd.md`
+   - `_bmad-output/planning-artifacts/ux-design-specification.md`
+   - `_bmad-output/planning-artifacts/architecture.md`
+   - `_bmad-output/planning-artifacts/epics.md`
+   - (Optional) `_bmad-output/planning-artifacts/product-brief-*.md`
+7. Send a brief first message confirming the upload: "These are the stable project docs (PRD + UX + Architecture + Epics list). I'll start individual chats per epic with epic-specific story files. Acknowledge and wait."
+8. After Claude Design acknowledges, **Start a new chat** (top-right + button). The project-level docs stay attached; each new chat inherits them.
 
-```
-Before Phase 4 can start, we need to know the status of the app shell.
-
-Has your project got an AppLayout (or stack-equivalent) component implemented?
-
-  [yes]   → Tell me the path (e.g., frontend/src/components/layout/AppLayout.tsx).
-            I'll record it in design-progress.yaml and proceed to the per-epic loop.
-  [no]    → I'll guide you through the shell workflow (design in Claude Design
-            "00 — App Shell", export, implement, commit). Then come back and
-            answer [yes].
-  [skip]  → The product has no persistent shell (single-screen landing,
-            minimal PWA, interstitial, etc.). Skip shell-related instructions
-            for every epic. Codebase attachment becomes OPTIONAL instead of
-            REQUIRED.
-```
-
-**On `[yes]`:**
-- Record `app_shell.status: implemented`, `app_shell.layout_component_path: <user-provided path>`, `app_shell.implemented_at: {today}` in `design-progress.yaml`
-- Proceed to "The Loop" section below
-
-**On `[no]`:**
-- Print the shell-first workflow:
-  ```
-  1. Go to claude.ai/design
-  2. Create a new project named "00 — App Shell"
-  3. Prompt: "Design the app shell for <product type>: header (logo + nav + user avatar),
-     footer (if any), sidebar (if any), navigation. Show all variants: default,
-     scrolled, mobile (hamburger state if applicable), desktop."
-  4. Iterate until satisfied
-  5. Export → Hand off to Claude Code
-  6. Paste the handoff prompt into local Claude Code
-  7. Claude Code builds AppLayout.tsx (or stack-equivalent) on branch chore/app-shell
-  8. Review, merge to main
-  9. Re-run /bmad-roadmap-v2 and answer [yes] to the pre-flight
-  ```
-- Record `app_shell.status: pending` + any URLs the user pasted
-- Halt Phase 4 until the user returns with `[yes]`
-
-**On `[skip]`:**
-- Record `app_shell.status: none` in `design-progress.yaml`
-- The choice is sticky — the orchestrator never re-asks unless the user manually edits `design-progress.yaml`
-- Proceed to "The Loop" — all shell-related instructions are omitted in per-epic prompts
-
-**Shell implementation — NOT a story.** The shell is infrastructure, not a user-facing feature:
-- Branch: `chore/app-shell` (or `feat/app-shell-foundation`)
-- No story file, no Kateb reviews, no Naqed, no retrospective
-- Merge directly to `main` once reviewed
-- It's tracked in `design-progress.yaml: app_shell` only, NOT in `sprint-status.yaml`
+Record the project URL in `_bmad-output/implementation-artifacts/design-progress.yaml: design_system.product_project_url`.
 
 ---
 
@@ -86,32 +80,32 @@ Iterate this sub-workflow for each epic. The orchestrator uses `_bmad-output/imp
 
 ### Sub-step A — Pick next epic
 
-1. Read `design-progress.yaml`
-2. If any epic has `status: in-progress` → resume that epic (prompt user: "Still working on Epic {X}? [continue/redo/skip]")
-3. Else → pick the first epic with `status: pending` and start it
-4. If all epics are `design-complete` → Phase 4 is done, exit to Phase 5
+1. Read `design-progress.yaml`.
+2. If any epic has `status: in-progress` → resume that epic (prompt user: "Still working on Epic {X}? [continue/redo/skip]").
+3. Else → pick the first epic with `status: pending` and start it.
+4. If all epics are `design-complete` → Phase 4 is done, exit to Phase 5.
 
 ### Sub-step B — Prepare the Claude Design session
 
 **Run:** `/bmad-claude-design-prep --epic={slug}` (skill added by this patch).
 
 This skill:
-1. Generates an **attachment checklist** — exact file paths to upload to Claude Design for this epic
-2. Generates a **ready-to-paste prompt** for the Claude Design chat, including aesthetics guidance
+1. Generates a **chat-level attachment checklist** — ONLY the epic's stories (the stable docs are already at project level)
+2. Generates a **ready-to-paste prompt** for the new chat, including aesthetics guidance and explicit mentions of the project-level docs to consult
 3. Creates `design-process/claude-design-handoffs/<epic-slug>/bundle.md` with a template
 4. Sets the epic's status in `design-progress.yaml` to `in-progress`
 
 Print both the checklist and the prompt to the terminal. Tell the user:
-> "Open claude.ai/design, create a new project for Epic {name}, upload these files, paste this prompt, iterate on designs, then come back when done."
+> "Inside the existing Baseir project, click **+ Start a new chat**. Name the chat after the epic. Upload the files from the checklist (stories only — the PRD/UX/Architecture are already at project level). Paste the prompt. Iterate on designs. Return when done."
 
 ### Sub-step C — Manual user work in Claude Design
 
 The user does the work. The orchestrator waits. Expected activities:
-- Create a new project in Claude Design named for the epic
-- Upload the files from the checklist
+- Start a new chat inside the existing product project
+- Upload the epic's story files from the checklist
 - Paste the prompt
 - Review Claude's generated designs
-- Iterate via inline comments (small changes) and chat (structural changes)
+- Iterate via inline comments (small changes) and chat replies (structural changes)
 - Ask Claude to show edge states (empty, error, loading, RTL)
 - When satisfied: Export → Hand off to Claude Code
 - Claude Design produces a bundle URL + a ready-to-paste prompt
@@ -145,6 +139,8 @@ This skill:
 5. Marks the epic's status in `design-progress.yaml` as `design-complete`
 6. Prints a human-readable diff summary
 
+**Story version-drift safety:** Because stories are uploaded per-chat (not at the project level), the next epic's chat will get the freshly-synced versions of any cross-referenced stories. No stale-story conflicts.
+
 ### Sub-step F — Advance
 
 Return to Sub-step A and pick the next epic, until every epic is `design-complete`.
@@ -163,6 +159,10 @@ If the Claude Design bundle is JS-heavy and WebFetch returns empty content:
 1. Ask the user to download the bundle as a ZIP from the Claude Design export menu
 2. Save it to `design-process/claude-design-handoffs/<epic-slug>/bundle.zip`
 3. Re-run `/bmad-sync-from-design --epic={slug} --bundle-zip=<path>`
+
+### A previous epic's stories need re-syncing
+
+If Sub-step E modified stories that cross an epic boundary (e.g., a global validation rule lives in Epic 1's auth story but Epic 4's checkout uses it), the local copy is now newer than any prior Claude Design chat where that story was uploaded. **This is fine** — the next chat (Sub-step C of the next epic) re-uploads stories from the local filesystem, so the new chat always sees the latest version. No action needed.
 
 ---
 
