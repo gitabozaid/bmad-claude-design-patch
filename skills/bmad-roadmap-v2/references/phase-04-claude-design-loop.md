@@ -61,16 +61,15 @@ Done once per product:
 3. Design system: pick the org-level system you just published.
 4. Choose **High fidelity + Interactive prototype**.
 5. Click **Create**. The project opens with a "Start with context" sidebar and a chat textarea.
-6. Upload the **project-level stable docs** ONCE (drag-drop into the chat or use Import → file picker). These are the docs every chat will inherit:
+6. Upload the **project-level stable docs** ONCE — drag-drop them onto the canvas. Claude Design auto-files them into a project-level `uploads` folder. These are the docs every chat will inherit automatically:
    - `_bmad-output/planning-artifacts/prd.md`
    - `_bmad-output/planning-artifacts/ux-design-specification.md`
    - `_bmad-output/planning-artifacts/architecture.md`
    - `_bmad-output/planning-artifacts/epics.md`
    - (Optional) `_bmad-output/planning-artifacts/product-brief-*.md`
-7. Send a brief first message confirming the upload: "These are the stable project docs (PRD + UX + Architecture + Epics list). I'll start individual chats per epic with epic-specific story files. Acknowledge and wait."
-8. After Claude Design acknowledges, **Start a new chat** (top-right + button). The project-level docs stay attached; each new chat inherits them.
+7. That's it. **No acknowledgement message is needed.** Files in the `uploads` folder are project-level context for every new chat created inside this project. The per-chat prompts (printed by `/bmad-claude-design-prep`) name these files explicitly so Claude Design knows to consult them; no separate "do you have the docs?" exchange is required.
 
-Record the project URL in `_bmad-output/implementation-artifacts/design-progress.yaml: design_system.product_project_url`.
+Record the project URL in `_bmad-output/implementation-artifacts/design-progress.yaml: product_project.url`.
 
 ---
 

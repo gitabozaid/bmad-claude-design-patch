@@ -52,7 +52,7 @@ Create ONE Claude Design project named after the product (NOT after an epic). Th
 - `_bmad-output/planning-artifacts/architecture.md`
 - `_bmad-output/planning-artifacts/epics.md`
 
-Send a brief confirmation message in the project chat so Claude Design acknowledges the docs ("These are the stable project docs. I'll start a new chat per epic and attach the epic's stories then. Acknowledge and wait."), then start fresh chats per epic.
+No acknowledgement message is needed — files in the `uploads` folder are project-level context for every new chat. The per-chat prompts (printed by `/bmad-claude-design-prep`) name these files explicitly. Just create the project, drop the 4 docs, and proceed to per-epic chats.
 
 Record the URL in `_bmad-output/implementation-artifacts/design-progress.yaml: product_project.url`.
 

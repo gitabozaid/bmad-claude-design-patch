@@ -158,12 +158,12 @@ Done once per product:
 2. Project name: **the product name** (NOT an epic name).
 3. Design system: the one you just published.
 4. Pick **High fidelity + Interactive prototype** → **Create**.
-5. Inside the project, drag-drop the **stable product docs** ONCE (they will live at the project level and inherit into every chat):
+5. Inside the project, drag-drop the **stable product docs** ONCE onto the canvas. Claude Design auto-files them into a project-level `uploads` folder; they inherit into every new chat automatically:
    - `prd.md`
    - `ux-design-specification.md`
    - `architecture.md`
    - `epics.md`
-6. Send a brief confirmation message: "These are the stable project docs. I'll start a new chat per epic and attach the epic's stories then. Acknowledge and wait."
+6. No acknowledgement message needed. Per-chat prompts (printed by `/bmad-claude-design-prep`) name the files explicitly so Claude Design knows to consult them.
 7. Record the project URL in `_bmad-output/implementation-artifacts/design-progress.yaml: product_project.url`.
 
 ### Why no separate "App Shell" project
