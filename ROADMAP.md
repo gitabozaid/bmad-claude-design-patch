@@ -90,53 +90,65 @@ If the approach is wrong mid-loop, invoke `/bmad-correct-course` (BMM native) �
 
 Each story = one screen + its API + its DB migration + its tests, all in one PR.
 
+### Pause model
+
+Phase 6 has two pause points (revised 2026-05-12):
+- **Per story, Step 4 (User Review):** light visual + flow check AFTER Naqed has cleaned the implementation. Just confirm "looks clean, continue" or list small fixes.
+- **Per epic, Epic Close-out E1 (Final Approval):** holistic walk-through of every story together once the last one ships. This is where deeper review happens.
+
+There is no per-story Final Approval. There is no Critique sub-step inside Naqed (the Claude Design bundle is the approved visual; second-guessing it adds noise).
+
 ### Per-epic wrapper
 
 - **First epic only:** `/bmad-testarch-framework` + `/bmad-testarch-ci` to set up the test framework and CI.
-- **After each epic:** `/bmad-retrospective` + `/bmad-testarch-trace`.
+- **After each epic:** Epic Close-out (User Final Approval → `/bmad-retrospective` → `/bmad-testarch-trace`).
 
 ### Story Protocol (for every story)
 
-Follow `.claude/skills/bmad-roadmap-v2/references/story-protocol.md`. 10 steps in a single branch:
+Follow `.claude/skills/bmad-roadmap-v2/references/story-protocol.md`. 9 steps in a single branch:
 
 ```
-Step 1:  Branch
-Step 2:  Saneh — Full-Stack Build
-         (reads story + Design Reference block; fetches bundle; detects
-          stack; builds UI + state + routing + i18n + API + DB migration
-          + **dev seeder** + **factories** + tests in one pass; runs
-          migrate:fresh --seed so the dev DB has realistic fake data;
-          returns a Test Checklist derived from the story's
-          AC/Edge Cases/Interactions)
-Step 3:  User Review [PAUSE]
-         Orchestrator prints the Test Checklist verbatim so the user
-         knows exactly what to verify in the browser (happy path, edge
-         cases, states, interactions, bilingual if applicable).
-         Fixes classified three-way (CONTENT / JOURNEY / SHELL)
-Step 4:  Naqed — Visual QA (in this order)
-         4a. Design Compliance Check (vs Bundle URL)
-         4b. Critique (UX)
-         4c. Audit (a11y + performance)
-Step 5:  User Final Approval [PAUSE]
-         Two-way fix classification:
-           CONTENT-level → re-invoke Saneh (content, copy, CSS tweaks,
-                          minor behavior, header/sidebar adjustments)
-           JOURNEY-DESIGN-level → Escape to Phase 4 for this epic (start
-                                  a new chat in the SAME product project,
-                                  iterate, re-export, re-sync)
-         Approve → continue to Step 6.
-Step 6:  /simplify
-Step 7:  /bmad-code-review (auto-mode)
-Step 8:  PR Review (3 agents in parallel)
-Step 9:  Verify (stack-detected: pnpm tsc + pnpm lint + php artisan test as applicable)
-Step 10: /ship
+Step 1: Branch
+Step 2: Saneh — Full-Stack Build
+        (reads story + Design Reference block; fetches bundle; detects
+         stack; builds UI + state + routing + i18n + API + DB migration
+         + **dev seeder** + **factories** + tests in one pass; runs
+         migrate:fresh --seed so the dev DB has realistic fake data;
+         returns a Test Checklist derived from the story's
+         AC/Edge Cases/Interactions)
+Step 3: Naqed — Visual + Technical QA (automated, no pause)
+        3a. Compliance Check (screenshot diff vs Bundle URL,
+            including RTL + LTR if bilingual) — applies code fixes
+        3b. Audit (/audit a11y + perf) — applies code fixes
+        No Critique sub-step.
+Step 4: User Review [PAUSE — light, per story]
+        User sees the already-cleaned screen, does a quick visual +
+        flow check, replies "continue" or lists fixes.
+        Fixes classified two-way (CONTENT / JOURNEY).
+Step 5: /simplify
+Step 6: /bmad-code-review (auto-mode)
+Step 7: PR Review (3 agents in parallel)
+Step 8: Verify (stack-detected: pnpm tsc + pnpm lint + php artisan test as applicable)
+Step 9: /ship
+```
+
+### Epic Close-out (after the last story of each epic)
+
+```
+E1: User Final Approval [PAUSE — per epic]
+    Walk through every shipped story end-to-end. Approve or surface
+    fixes (CONTENT → re-invoke Saneh on affected story / JOURNEY →
+    escape to Phase 4 for this epic).
+E2: /bmad-retrospective
+E3: /bmad-testarch-trace
+E4: Mark epic complete in roadmap-progress.yaml; advance current_epic.
 ```
 
 No Kateb step (reviews moved to Phase 3). No Mir'a step (sync happens in Phase 4, not per story).
 
 ### Escape to Phase 4 (journey design)
 
-If Step 3 or Step 5 surfaces a **JOURNEY-DESIGN-level** change (layout, new screen, rearranged sections, header/sidebar/nav-level rework), return to Phase 4 for the affected epic: reset its `design-progress.yaml` status to `in-progress`, open the product Claude Design project, start a new chat (or continue the existing epic chat), iterate, re-export, re-run `/bmad-sync-from-design`, then resume Phase 6 at the affected story.
+If Step 4 (per-story User Review) or E1 (per-epic Final Approval) surfaces a **JOURNEY-DESIGN-level** change (layout, new screen, rearranged sections, header/sidebar/nav-level rework), return to Phase 4 for the affected epic: reset its `design-progress.yaml` status to `in-progress`, open the product Claude Design project, start a new chat (or continue the existing epic chat), iterate, re-export, re-run `/bmad-sync-from-design`, then resume Phase 6 at the affected story.
 
 Because all journey chats live inside the SAME product project, shell-style changes propagate as conventions across chats automatically — the user doesn't need a separate workflow for them.
 

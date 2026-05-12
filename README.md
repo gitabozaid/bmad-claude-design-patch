@@ -180,27 +180,38 @@ Stories get rewritten by `/bmad-sync-from-design` (acceptance criteria + edge ca
 
 ## Story protocol (Phase 6, full-stack)
 
-Each story runs through 10 steps in a single branch:
+Each story runs through 9 steps in a single branch. Pause model (revised 2026-05-12): one PAUSE per story (light) + one PAUSE per epic (holistic). No Critique sub-step — the Claude Design bundle IS the approved visual.
 
 ```
-Step 1:  Branch
-Step 2:  Saneh — Full-Stack Build (UI + API + DB + tests in one pass)
-Step 3:  User Review [PAUSE]
-Step 4:  Naqed — Visual QA
-         4a. Design Compliance (vs Bundle URL)
-         4b. Critique (UX)
-         4c. Audit (a11y + perf)
-Step 5:  User Final Approval [PAUSE]
-Step 6:  Simplify
-Step 7:  Code Review
-Step 8:  PR Review (parallel)
-Step 9:  Verify (stack-detected)
-Step 10: Ship
+Step 1: Branch
+Step 2: Saneh — Full-Stack Build (UI + API + DB + tests in one pass)
+Step 3: Naqed — Visual + Technical QA (automated, no pause)
+        3a. Compliance (screenshot diff vs Bundle URL, RTL+LTR)
+        3b. Audit (a11y + perf)
+Step 4: User Review [PAUSE — light, per story]
+        User sees the cleaned screen, does a quick visual + flow check.
+        Fixes classified two-way (CONTENT / JOURNEY).
+Step 5: Simplify
+Step 6: Code Review
+Step 7: PR Review (parallel)
+Step 8: Verify (stack-detected)
+Step 9: Ship
 ```
 
-**User Final Approval at Step 5** classifies your fixes:
-- Code-level → re-invoke Saneh
-- Design-level → escape back to Phase 4 for that epic
+After the last story of each epic, run **Epic Close-out**:
+
+```
+E1: User Final Approval [PAUSE — per epic, holistic walk-through]
+    Approve epic OR surface fixes (CONTENT → re-invoke Saneh on
+    affected story / JOURNEY → escape to Phase 4).
+E2: /bmad-retrospective
+E3: /bmad-testarch-trace
+E4: Mark epic complete; advance to next epic.
+```
+
+**Fix classification (Step 4 or E1):**
+- CONTENT-level → re-invoke Saneh on the affected story
+- JOURNEY-level → escape back to Phase 4 for that epic (re-design + re-sync)
 
 **Per-epic wrappers** (first epic only: test-infra setup; after each epic: retrospective + test trace) are in the Story Protocol reference file.
 
