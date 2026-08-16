@@ -18,7 +18,7 @@ A BMAD patch that replaces the WDS + per-screen-spec workflow with **BMM-native 
 **Fresh install:**
 ```bash
 cd /path/to/your/project
-bash ~/Desktop/workspace/abozaid/bmad-claude-design-patch/install.sh
+bash ~/Desktop/workspace/wallpaper/bmad-claude-design-patch/install.sh
 ```
 
 Copies the patch files into your project (self-contained — the project owns its copy, not a link to the patch repo). Records the installed commit in `.bmad/.patch-version`.
@@ -231,7 +231,7 @@ If you absolutely must migrate an existing project from v1 to v3:
 2. **Keep** the existing PRD + Architecture (they're compatible)
 3. **Run** the install with `--force-migrate`:
    ```bash
-   bash ~/Desktop/workspace/abozaid/bmad-claude-design-patch/install.sh --force-migrate
+   bash ~/Desktop/workspace/wallpaper/bmad-claude-design-patch/install.sh --force-migrate
    ```
 4. **Re-run Phase 2** (`/bmad-create-ux-design`) to produce the consolidated UX doc
 5. **Re-run Phase 3** (`/bmad-create-epics-and-stories-v2`) to regenerate epics + stories
@@ -260,7 +260,7 @@ The patch overlays two BMM files:
 If BMAD auto-updates, these may revert. Fix:
 ```bash
 cd /path/to/project
-bash ~/Desktop/workspace/abozaid/bmad-claude-design-patch/install.sh
+bash ~/Desktop/workspace/wallpaper/bmad-claude-design-patch/install.sh
 ```
 The install is idempotent; it re-applies overlays.
 
